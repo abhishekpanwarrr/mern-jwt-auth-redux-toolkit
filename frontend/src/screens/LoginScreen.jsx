@@ -1,18 +1,40 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Form, Button, Row, Col } from "react-bootstrap";
 import FormContainer from "../components/FormContainer";
+import { useNavigate } from "react-router-dom";
+import { useDispatch,useSelector } from "react-redux";
+import { useLoginMutation } from "../slices/usersApiSlice";
+import {setCredentials} from "../slices/authSlice.js"
+import {toast }from "react-toastify"
+import Loader from "../components/Loader";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const handleSubmit = (e) => {
+
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const [login,{isLoading}] = useLoginMutation()
+  const {userInfo} = useSelector((state) => state.auth)
+
+  useEffect(() => {
+      if (userInfo) {
+        navigate("/");
+      }
+    }, [userInfo, navigate]);
+
+  const handleSubmit = async(e) => {
     e.preventDefault();
-    if (email === "" || password === "") {
-      setError("All fields are required");
-    } else {
-      setError("");
+
+    try {
+      const res = await login({email,password}).unwrap()
+      dispatch(setCredentials({...res}))
+      navigate("/");
+    } catch (error) {
+      toast.error(error.data.message || error.error)
     }
   };
   return (
@@ -37,6 +59,7 @@ const LoginScreen = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Form.Group>
+        {isLoading && <Loader />}
         <Button variant="primary" className="mt-3" type="submit">
           Login
         </Button>
